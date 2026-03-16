@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Priest - MoP Classic Helper</title>
+    <link rel="icon" type="image/x-icon" href="analyzer/icons/favicon.ico">
+    <link rel="stylesheet" href="style.css?v=2.45.3">
+</head>
+<body>
+    <!-- LANDING PAGE -->
+    <div id="landing-page" class="landing-page">
+        <div class="landing-content">
+            <div class="landing-header">
+                <div class="logo"></div>
+                <h1 class="text-primary">MoP Shadow Priest Analyzer</h1>
+            </div>
+
+            <div class="landing-card">
+                <form class="report-form">
+                    <div class="form-group">
+                        <label for="wcl-report">Enter WCL report ID or URL</label>
+                        <input type="text"
+                               id="wcl-report"
+                               placeholder="e.g. https://www.warcraftlogs.com/reports/DC2WjNJKnzYtMPLG">
+                        <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                            <span class="spinner"></span> Loading report...
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="player-select">Select Player</label>
+                        <select id="player-select" disabled>
+                            <option value="">Load report first</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="encounter-select">Select Encounter</label>
+                        <div class="encounter-select-wrapper">
+                            <select id="encounter-select" disabled>
+                                <option value="">Load report first</option>
+                            </select>
+                            <div id="boss-icon-container" class="boss-icon-container" style="display: none;">
+                                <img id="boss-icon" class="boss-icon" src="" alt="" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-primary" id="analyze-btn" disabled onclick="startAnalysis()">Analyze</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="landing-footer">
+                <div>Made by <a href="https://github.com/thewellnamed/shadow" target="_blank">@Kalon</a> & Updated by <a href="https://github.com/shadowpriest-mop/shadow" target="_blank">@Kiwiandapple</a></div>
+                <div class="footer-links">
+                    <a href="#" onclick="showAbout(); return false;">About</a>
+                    <span class="separator">|</span>
+                    <a href="https://discord.gg/classicshadow" target="_blank">Discord</a>
+                    <span class="separator">|</span>
+                    <a href="https://github.com/shadowpriest-mop/shadow" target="_blank">Source</a>
+                    <span class="separator">|</span>
+                    <a href="#" id="benchmark-toggle-landing" onclick="toggleBenchmarkDisplay(); return false;">Show Benchmarks</a>
+                </div>
+                <div class="version-label">v2.45.6</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYSIS PAGE -->
+    <div id="analysis-page" class="analysis-page" style="display: none;">
+        <!-- Top Nav Bar -->
+        <nav class="app-bar">
+            <a href="#" onclick="goHome(); return false;" class="logo-link">
+                <span class="logo"></span>
+            </a>
+            <span class="report-title text-primary" id="report-title">
+                <!-- Will be populated by JS -->
+            </span>
+            <span class="report-link">
+                <a href="#" id="wcl-link" target="_blank" title="View on WCL">
+                    <span class="wcl-link-text">WCL link</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+                    </svg>
+                </a>
+            </span>
+            <button id="benchmark-toggle-analysis" class="benchmark-toggle-btn" onclick="toggleBenchmarkDisplay()" title="Toggle benchmark comparison">
+                Show Benchmarks
+            </button>
+            <button id="update-benchmarks-btn" class="benchmark-toggle-btn" onclick="showBenchmarkInstructions()" title="Update benchmark data">
+                ⚙️ Update Benchmarks
+            </button>
+            <button id="clear-cache-btn" class="benchmark-toggle-btn" onclick="clearFightCache()" title="Clear cached fight data">
+                🗑️ Clear Cache
+            </button>
+            <span id="api-quota-display" class="api-quota" style="display: none;"></span>
+            <span class="app-version">v2.45.6</span>
+        </nav>
+
+        <!-- Talents Display & Selectors -->
+        <div class="talents-and-selectors-bar">
+            <div id="talents-display" class="talents-display" style="display: none;">
+                <!-- Talents will be populated by JavaScript -->
+            </div>
+
+            <div class="selector-group">
+                <select id="player-select-analysis" class="compact-select">
+                    <!-- Will be populated by JS -->
+                </select>
+                <select id="encounter-select-analysis" class="compact-select">
+                    <!-- Will be populated by JS -->
+                </select>
+                <div id="boss-icon-container-analysis" class="boss-icon-container" style="display: none;">
+                    <img id="boss-icon-analysis" class="boss-icon" src="" alt="" />
+                </div>
+            </div>
+
+            <!-- View Toggle Buttons -->
+            <div class="view-toggle-buttons">
+                <button class="view-toggle-btn active" data-view="summary" onclick="toggleView('summary')">Summary</button>
+                <button class="view-toggle-btn" data-view="detailed" onclick="toggleView('detailed')">Detailed</button>
+            </div>
+        </div>
+
+
+        <!-- Analysis Loading Indicator -->
+        <div id="analysis-loading" class="analysis-loading" style="display: none;">
+            <div class="loading-spinner-large"></div>
+            <p class="loading-text">Analyzing log data...</p>
+            <p class="loading-subtext">Fetching events from WarcraftLogs</p>
+        </div>
+
+        <!-- Analysis Results -->
+        <div id="analysis-results" style="display: none;">
+            <!-- Pre-Pull Actions Check -->
+            <div id="prepull-check" class="prepull-check">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <!-- Benchmark Comparison -->
+            <div id="benchmark-comparison" class="benchmark-comparison" style="display: none;">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <div id="cast-timeline">
+                <!-- Spell Filter Buttons -->
+                <div class="spell-filters" style="display: none;">
+                    <button class="spell-filter-btn active" data-spell="timeline" onclick="filterBySpell('timeline')">
+                        <span class="filter-label">Timeline</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="2944" onclick="filterBySpell(2944)">
+                        <img src="analyzer/icons/plague.jpg" alt="DP" class="filter-icon">
+                        <span class="filter-label">DP</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="34914" onclick="filterBySpell(34914)">
+                        <img src="analyzer/icons/vt.jpg" alt="VT" class="filter-icon">
+                        <span class="filter-label">VT</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="589" onclick="filterBySpell(589)">
+                        <img src="analyzer/icons/swp.jpg" alt="SW:P" class="filter-icon">
+                        <span class="filter-label">SW:P</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="8092" onclick="filterBySpell(8092)">
+                        <img src="analyzer/icons/mb.jpg" alt="MB" class="filter-icon">
+                        <span class="filter-label">MB</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="32379" onclick="filterBySpell(32379)">
+                        <img src="analyzer/icons/swd.jpg" alt="SW:D" class="filter-icon">
+                        <span class="filter-label">SW:D</span>
+                    </button>
+                    <button class="spell-filter-btn" data-spell="15407" onclick="filterBySpell(15407)">
+                        <img src="analyzer/icons/flay.jpg" alt="MF" class="filter-icon">
+                        <span class="filter-label">MF</span>
+                    </button>
+                </div>
+
+                <!-- Quick Overview Panel (Summary View) -->
+                <div id="quick-overview" class="quick-overview">
+                    <!-- Summary will be populated by JavaScript -->
+                </div>
+
+                <!-- Stats Overview Panel (Detailed View) -->
+                <div id="stats-overview" class="stats-overview" style="display: none;">
+                    <!-- Stats will be populated by JavaScript -->
+                </div>
+
+                <!-- Boss/Add Damage Stats -->
+                <div id="boss-add-stats" class="boss-add-stats" style="display: none;">
+                    <!-- Boss/Add damage breakdown will be populated by JavaScript -->
+                </div>
+
+                <!-- Quality filters with Target Filter -->
+                <div class="cast-filters" style="display: none;">
+                    <label>
+                        <input type="checkbox" id="filter-boss" checked> Boss
+                    </label>
+                    <label>
+                        <input type="checkbox" id="filter-adds" checked> Adds
+                    </label>
+                    <select id="target-filter" class="target-filter-select">
+                        <option value="all">All Targets</option>
+                    </select>
+                    <label>
+                        <input type="checkbox" id="filter-warnings" checked> Show Warnings
+                    </label>
+                    <label>
+                        <input type="checkbox" id="filter-notices" checked> Show Notices
+                    </label>
+                    <label>
+                        <input type="checkbox" id="filter-normal" checked> Show Normal
+                    </label>
+                </div>
+
+                <div id="cast-list" class="cast-list" style="display: none;">
+                    <!-- Casts will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT MODAL/OVERLAY -->
+    <div id="about-overlay" class="about-overlay" style="display: none;">
+        <div class="about-content">
+            <button class="about-close" onclick="hideAbout()">×</button>
+            <h2>About Solace and Insanity (Mind Flay: Insanity)</h2>
+            <p>
+                The Solace and Insanity talent causes your Mind Flay to deal increased damage while Devouring Plague
+                is active on the target. This damage bonus is <strong>snapshotted</strong> when you start channeling Mind Flay.
+            </p>
+            <p class="tip">
+                <strong>Tip:</strong> Just before Devouring Plague expires, clip your current Mind Flay channel and start
+                a new one to snapshot the Insanity damage bonus one last time. This maximizes your damage by getting an
+                extra empowered Mind Flay before DP falls off.
+            </p>
+        </div>
+    </div>
+
+    <!-- Benchmark Instructions Overlay -->
+    <div id="benchmark-instructions-overlay" class="about-overlay" style="display: none;">
+        <div class="about-content">
+            <button class="about-close" onclick="hideBenchmarkInstructions()">×</button>
+            <h2>⚙️ Update Benchmark Data</h2>
+            <p>
+                Benchmark data is automatically updated weekly via GitHub Actions. To manually update benchmarks now:
+            </p>
+
+            <h3>Option 1: Run Locally (Recommended)</h3>
+            <div class="code-block">
+                <pre>cd /path/to/shadow
+node tools/benchmark-scraper.js --auto</pre>
+                <button class="copy-btn" onclick="copyToClipboard('cd /path/to/shadow\nnode tools/benchmark-scraper.js --auto')">Copy</button>
+            </div>
+            <p class="tip">
+                This will fetch ranks 51-100 for all configured encounters and calculate median values.
+                Takes ~2-3 minutes. Requires Node.js installed.
+            </p>
+
+            <h3>Option 2: Wait for Automatic Update</h3>
+            <p>
+                Next automatic update: <strong>Every Wednesday at 3:00 AM CET</strong>
+            </p>
+
+            <h3>Option 3: Trigger GitHub Action</h3>
+            <p>
+                Go to <a href="https://github.com/shadowpriest-mop/shadow/actions/workflows/update-benchmarks.yml" target="_blank">GitHub Actions</a>
+                and manually trigger the "Update Benchmark Data" workflow.
+            </p>
+
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #424242;">
+
+            <h3>📝 Configure Benchmarks</h3>
+            <p class="tip">
+                To add more encounters, edit <code>BENCHMARK_CONFIG</code> in <code>tools/benchmark-scraper.js</code>
+            </p>
+        </div>
+    </div>
+
+    <!-- Analyzer modules -->
+    <script src="analyzer/spell-data.js?v=2.34.2"></script>
+    <script src="analyzer/buff-data.js?v=2.23.6"></script>
+    <script src="analyzer/haste.js?v=2.14"></script>
+    <script src="analyzer/wcl-v2-service.js?v=2.42.0"></script>
+    <script src="analyzer/cast-details.js?v=2.33.0"></script>
+    <script src="analyzer/stat-highlights.js?v=2.32.0"></script>
+    <script src="analyzer/casts-analyzer.js?v=2.34.3"></script>
+    <script src="analyzer/cast-stats-calculator.js?v=2.30.9"></script>
+    <script src="analyzer/spell-icons.js?v=2.34.3"></script>
+    <script src="analyzer/event-analyzer.js?v=2.14"></script>
+    <script src="analyzer/prepull-checker.js?v=2.40.1"></script>
+    <script src="analyzer/boss-database.js?v=2.37.6"></script>
+    <script src="analyzer/quick-overview.js?v=2.36.0"></script>
+    <script src="analyzer/benchmark-loader.js?v=2.37.6"></script>
+    <script src="script.js?v=2.42.0"></script>
+</body>
+</html>
