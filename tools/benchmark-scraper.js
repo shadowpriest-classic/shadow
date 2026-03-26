@@ -335,22 +335,16 @@ function extractMetrics(reportData) {
 }
 
 /**
- * Unpack encounter ID to get base ID (remove packed format)
- * Packed format: 50000 + (difficulty * 10) + baseEncounterID
- * Example: 51565 → 1505
+ * Unpack encounter ID to get journal encounter ID
+ * WCL adds 50000 to the journal encounter ID
+ * Example: 51565 → 1565 (Tortos journal ID)
+ * Must match the logic in benchmark-loader.js
  */
 function unpackEncounterID(packedID) {
   if (packedID > 50000) {
-    const offset = packedID - 50000;
-    // Try each difficulty from highest to lowest (6, 5, 4, 3)
-    for (let diff = 6; diff >= 3; diff--) {
-      const candidateBase = offset - (diff * 10);
-      if (candidateBase >= 1490 && candidateBase <= 1600) {
-        return candidateBase;
-      }
-    }
+    return packedID - 50000;
   }
-  return packedID; // Already unpacked or unknown format
+  return packedID; // Already unpacked
 }
 
 /**
