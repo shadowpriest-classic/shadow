@@ -147,6 +147,20 @@ class WCLv2Service {
     if (!response.ok) {
       const text = await response.text();
       console.error('GraphQL error:', text);
+      // On 429, try to parse rate limit info from the response body before throwing
+      if (response.status === 429) {
+        try {
+          const errData = JSON.parse(text);
+          if (errData.data && errData.data.rateLimitData) {
+            this.updateRateLimitFromGraphQL(errData.data.rateLimitData);
+          }
+        } catch (e) { /* body wasn't JSON, ignore */ }
+        // If we still don't have a reset time, default to 1 hour from now
+        if (!this.rateLimit.reset) {
+          this.rateLimit.reset = Math.floor(Date.now() / 1000) + 3600;
+          this.rateLimit.remaining = 0;
+        }
+      }
       throw new Error(`GraphQL query failed: ${response.status}`);
     }
 
