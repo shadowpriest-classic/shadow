@@ -335,6 +335,59 @@ window.hideBenchmarkInstructions = function() {
 };
 
 /**
+ * Show API error overlay - quota-aware with support link
+ */
+function showApiError(error) {
+    const overlay = document.getElementById('api-error-overlay');
+    const content = document.getElementById('api-error-content');
+    if (!overlay || !content) {
+        alert(error.message || error);
+        return;
+    }
+
+    const rateLimit = window.wclV2Service ? window.wclV2Service.getRateLimit() : null;
+    const isQuotaError = rateLimit && rateLimit.remaining !== null && rateLimit.remaining < 50;
+
+    if (isQuotaError) {
+        // Calculate reset time
+        let resetText = 'in ~1 hour';
+        if (rateLimit.reset) {
+            const secondsLeft = Math.max(0, rateLimit.reset - Math.floor(Date.now() / 1000));
+            const minutesLeft = Math.ceil(secondsLeft / 60);
+            resetText = minutesLeft <= 1 ? 'in less than a minute' : `in ~${minutesLeft} minutes`;
+        }
+
+        content.innerHTML = `
+            <h2>⚠️ API Quota Reached</h2>
+            <p>We've run out of WarcraftLogs API calls for this hour. Please come back ${resetText}.</p>
+            <p class="tip">
+                Want to help keep this tool running?<br>
+                Supporting Kiwiandapple helps fund more API capacity!
+            </p>
+            <a href="https://linktr.ee/kiwiandapple" target="_blank"
+               style="display:inline-block;margin-top:8px;padding:10px 20px;background:#9333ea;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">
+                ❤️ Support Kiwiandapple
+            </a>
+        `;
+    } else {
+        content.innerHTML = `
+            <h2>❌ Error</h2>
+            <p>${error.message || 'Something went wrong. Please try again.'}</p>
+        `;
+    }
+
+    overlay.style.display = 'flex';
+}
+
+/**
+ * Hide API error overlay
+ */
+function hideApiError() {
+    const overlay = document.getElementById('api-error-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+/**
  * Copy text to clipboard
  */
 window.copyToClipboard = function(text) {
@@ -807,7 +860,7 @@ window.loadReport = async function loadReport() {
 
     } catch (error) {
         console.error('Error loading report:', error);
-        alert('Error loading report: ' + error.message);
+        showApiError(error);
     } finally {
         loadingIndicator.style.display = 'none';
     }
@@ -1190,7 +1243,7 @@ window.analyzeLog = async function analyzeLog() {
 
     } catch (error) {
         console.error('Error analyzing log:', error);
-        alert('Error analyzing log: ' + error.message);
+        showApiError(error);
     } finally {
         loadingIndicator.style.display = 'none';
         analysisLoading.style.display = 'none';
