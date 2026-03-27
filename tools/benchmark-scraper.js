@@ -50,6 +50,87 @@ const BENCHMARK_CONFIG = [
     difficultyName: 'Heroic 25',
     rankStart: 51,
     rankEnd: 100
+  },
+  {
+    encounterID: 51578,   // Megaera
+    encounterName: 'Megaera',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51573,   // Ji-Kun
+    encounterName: 'Ji-Kun',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51572,   // Durumu the Forgotten
+    encounterName: 'Durumu the Forgotten',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51574,   // Primordius
+    encounterName: 'Primordius',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51576,   // Dark Animus
+    encounterName: 'Dark Animus',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51559,   // Iron Qon
+    encounterName: 'Iron Qon',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51560,   // Twin Empyreans
+    encounterName: 'Twin Empyreans',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51579,   // Lei Shen
+    encounterName: 'Lei Shen',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51580,   // Ra-Den
+    encounterName: 'Ra-Den',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
   }
   // Add more bosses here as needed
 ];
