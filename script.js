@@ -346,7 +346,8 @@ function showApiError(error) {
     }
 
     const rateLimit = window.wclV2Service ? window.wclV2Service.getRateLimit() : null;
-    const isQuotaError = rateLimit && rateLimit.remaining !== null && rateLimit.remaining < 50;
+    const isQuotaError = (rateLimit && rateLimit.remaining !== null && rateLimit.remaining < 50)
+        || (error.message && (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')));
 
     if (isQuotaError) {
         // Calculate reset time
