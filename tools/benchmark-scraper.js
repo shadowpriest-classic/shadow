@@ -16,10 +16,37 @@ const path = require('path');
 // Uses median of ranks 51-100 to avoid parse-padding cheese while still representing strong play
 const BENCHMARK_CONFIG = [
   {
-    encounterID: 51565,   // Tortos
-    encounterName: 'Tortos',
+    encounterID: 51577,   // Jin'rokh the Breaker
+    encounterName: "Jin'rokh the Breaker",
     difficulty: 4,        // 3 = Normal, 4 = Heroic
     size: 25,             // Raid size: 10 or 25
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51575,   // Horridon
+    encounterName: 'Horridon',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51570,   // Council of Elders
+    encounterName: 'Council of Elders',
+    difficulty: 4,
+    size: 25,
+    difficultyName: 'Heroic 25',
+    rankStart: 51,
+    rankEnd: 100
+  },
+  {
+    encounterID: 51565,   // Tortos
+    encounterName: 'Tortos',
+    difficulty: 4,
+    size: 25,
     difficultyName: 'Heroic 25',
     rankStart: 51,
     rankEnd: 100
