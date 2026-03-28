@@ -15,6 +15,7 @@ class CastsAnalyzer {
     this.baseStats = { hasteRating: 0 }; // Will be updated from events
     this.activeBuffs = []; // Track currently active buffs
     this.dpPeriods = []; // Track when Devouring Plague is active (Insanity window)
+    this.diProcPeriods = []; // Track Divine Insight proc windows (buff ID 124430)
   }
 
   /**
@@ -41,6 +42,9 @@ class CastsAnalyzer {
     // Mind Flay has a unique "refresh" mechanic where casting again extends the channel
     this.cleanupMindFlayDamageInstances();
 
+    // Step 4c: Track Divine Insight proc windows (must run before cooldown metrics)
+    this.trackDivineInsightProcs();
+
     // Step 5: Calculate quality metrics
     this.calculateCastLatencies();
     this.calculateDotMetrics();
@@ -54,7 +58,8 @@ class CastsAnalyzer {
 
     return {
       casts: this.casts,
-      talents: talents
+      talents: talents,
+      diProcPeriods: this.diProcPeriods
     };
   }
 
@@ -1115,7 +1120,63 @@ class CastsAnalyzer {
   }
 
   /**
-   * Calculate cooldown metrics: time Mind Blast was ready but not used
+   * Track Divine Insight proc windows from buff events.
+   * DI (spell ID 124430) resets the MB cooldown and makes the next MB instant.
+   * Procs can refresh (new proc while buff is still active).
+   */
+  trackDivineInsightProcs() {
+    const DI_BUFF_ID = 124430;
+    this.diProcPeriods = [];
+
+    // Filter buff events to only DI
+    const diEvents = this.buffEvents.filter(e => e.abilityGameID === DI_BUFF_ID);
+    if (diEvents.length === 0) return;
+
+    let currentProc = null;
+
+    for (const event of diEvents) {
+      if (event.type === 'applybuff' || event.type === 'refreshbuff') {
+        if (currentProc && currentProc.endTime === null) {
+          // Previous proc ended via refresh — close it out
+          currentProc.endTime = event.timestamp;
+          currentProc.endReason = 'refreshed';
+        }
+        currentProc = {
+          startTime: event.timestamp,
+          endTime: null,
+          endReason: null,
+          usedByMB: false,
+          wasted: false
+        };
+        this.diProcPeriods.push(currentProc);
+      } else if (event.type === 'removebuff') {
+        if (currentProc && currentProc.endTime === null) {
+          currentProc.endTime = event.timestamp;
+          currentProc.endReason = 'expired';
+          currentProc = null;
+        }
+      }
+    }
+
+    // If proc was still active at end of fight, mark it
+    if (currentProc && currentProc.endTime === null) {
+      currentProc.endTime = this.settings && this.settings.fightEndTime
+        ? this.settings.fightEndTime
+        : Infinity;
+      currentProc.endReason = 'fightend';
+    }
+
+    // Procs that expired without being used are wasted (fight-end expirations don't count)
+    for (const proc of this.diProcPeriods) {
+      if (!proc.usedByMB && proc.endReason === 'expired') {
+        proc.wasted = true;
+      }
+    }
+  }
+
+  /**
+   * Calculate cooldown metrics: time Mind Blast was ready but not used.
+   * Accounts for Divine Insight procs which reset the MB cooldown instantly.
    * Important: MB cooldown starts when the cast FINISHES (castEnd), not when it starts!
    */
   calculateCooldownMetrics() {
@@ -1125,12 +1186,26 @@ class CastsAnalyzer {
     let lastMindBlastEnd = null;
 
     for (const cast of this.casts) {
+      // Check if a DI proc is active at this cast's start time
+      const activeDIProc = this.diProcPeriods.length > 0
+        ? this.diProcPeriods.find(p =>
+            cast.castStart >= p.startTime &&
+            cast.castStart < (p.endTime || Infinity) &&
+            !p.usedByMB
+          )
+        : null;
+
       if (cast.spellId === MIND_BLAST_ID) {
-        // Check if THIS Mind Blast was delayed
-        if (lastMindBlastEnd !== null) {
+        if (activeDIProc) {
+          // This MB consumed a DI proc — mark it and skip the normal CD delay check
+          cast.diProcActive = true;
+          cast.diProcDelay = cast.castStart - activeDIProc.startTime;
+          activeDIProc.usedByMB = true;
+          // Note: wasted flag already defaults false, stays false since it's used
+        } else if (lastMindBlastEnd !== null) {
+          // Regular MB: check if it was delayed past the normal 8s CD
           const timeSinceMB = cast.castStart - lastMindBlastEnd;
           const timeOffCooldown = timeSinceMB - MIND_BLAST_CD;
-
           if (timeOffCooldown > 0) {
             cast.timeOffCooldown = timeOffCooldown;
           }
@@ -1141,14 +1216,21 @@ class CastsAnalyzer {
         continue;
       }
 
-      // For non-Mind Blast casts, check if MB was off cooldown
+      // For non-MB casts, check if MB was off cooldown via normal CD
       if (lastMindBlastEnd !== null) {
         const timeSinceMB = cast.castStart - lastMindBlastEnd;
         const timeOffCooldown = timeSinceMB - MIND_BLAST_CD;
-
         if (timeOffCooldown > 0) {
           cast.timeOffCooldown = timeOffCooldown;
         }
+      }
+    }
+
+    // After processing all casts, re-evaluate wasted procs
+    // (any proc not marked usedByMB and ended via 'expired' or 'refreshed')
+    for (const proc of this.diProcPeriods) {
+      if (!proc.usedByMB && (proc.endReason === 'expired' || proc.endReason === 'refreshed')) {
+        proc.wasted = true;
       }
     }
   }

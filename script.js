@@ -1138,6 +1138,7 @@ window.analyzeLog = async function analyzeLog() {
         const analysisResult = castsAnalyzer.analyze();
         const casts = analysisResult.casts;
         const talents = analysisResult.talents;
+        window.diProcPeriods = analysisResult.diProcPeriods || [];
 
         // Run pre-pull checker
         // Get player ID from the first event with a sourceID
@@ -1616,6 +1617,18 @@ function createCastDetailsHTML(cast, fight) {
         `;
     }
 
+    // Divine Insight proc indicator (for MB casts that used a DI proc)
+    if (cast.diProcActive && cast.spellId === 8092) {
+        const reactionSec = cast.diProcDelay !== undefined ? (cast.diProcDelay / 1000).toFixed(1) : null;
+        const reactionClass = cast.diProcDelay < 2000 ? 'table-accent' : cast.diProcDelay < 4000 ? 'text-notice' : 'text-warning';
+        html += `
+            <div class="cast-details-item">
+                <span class="cast-details-label">Divine Insight:</span>
+                <span class="cast-details-value ${reactionClass}">⚡ proc used${reactionSec !== null ? ' (' + reactionSec + 's reaction)' : ''}</span>
+            </div>
+        `;
+    }
+
     // Mind Blast Cooldown Warning
     if (cast.timeOffCooldown && cast.timeOffCooldown > 0) {
         const status = statHighlights.cooldownUsage(cast);
@@ -1923,11 +1936,35 @@ function renderStatsOverview(filter) {
 
     // Mind Blast specific stats
     if (parseInt(filter) === 8092) {
-        const mbStats = window.statsCalculator.calculateMindBlastStats(filteredCasts);
+        const mbStats = window.statsCalculator.calculateMindBlastStats(filteredCasts, window.diProcPeriods || []);
         html += createStatField('Potential Casts', mbStats.potentialCasts);
 
+        if (mbStats.missedCasts > 0) {
+            html += createStatField('Missed Casts', mbStats.missedCasts, 'text-error');
+        }
+
         if (mbStats.avgDelay > 0) {
-            html += createStatField('Avg Delay', (mbStats.avgDelay / 1000).toFixed(1) + 's');
+            const delayClass = mbStats.avgDelay > 5000 ? 'text-error' : mbStats.avgDelay > 2000 ? 'text-warning' : 'text-notice';
+            html += createStatField('Avg Delay', (mbStats.avgDelay / 1000).toFixed(1) + 's', delayClass);
+        }
+
+        // Divine Insight proc stats (only shown when DI procs occurred)
+        if (mbStats.diStats && mbStats.diStats.procsGained > 0) {
+            const di = mbStats.diStats;
+            html += `<div class="stat-section-divider">Divine Insight</div>`;
+            html += createStatField('Procs Gained', di.procsGained);
+
+            const usedClass = di.procsUsed === di.procsGained ? 'table-accent' : di.procsUsed >= di.procsGained * 0.75 ? 'text-notice' : 'text-warning';
+            html += createStatField('Procs Used', `${di.procsUsed} / ${di.procsGained}`, usedClass);
+
+            if (di.procsWasted > 0) {
+                html += createStatField('Wasted', di.procsWasted, 'text-error');
+            }
+
+            if (di.avgReactionTime > 0) {
+                const reactionClass = di.avgReactionTime < 2000 ? '' : di.avgReactionTime < 4000 ? 'text-notice' : 'text-warning';
+                html += createStatField('Avg Reaction', (di.avgReactionTime / 1000).toFixed(1) + 's', reactionClass);
+            }
         }
     }
 

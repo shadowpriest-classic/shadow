@@ -184,13 +184,15 @@ class CastStatsCalculator {
 
   /**
    * Calculate Mind Blast specific stats
-   * Returns: { potentialCasts, missedCasts, avgDelay }
+   * Returns: { potentialCasts, missedCasts, avgDelay, diStats }
+   * @param {Array} mbCasts - filtered array of MB casts
+   * @param {Array} diProcPeriods - Divine Insight proc periods from casts-analyzer (optional)
    */
-  calculateMindBlastStats(mbCasts) {
+  calculateMindBlastStats(mbCasts, diProcPeriods = []) {
     const MIND_BLAST_CD = 8000; // 8 second flat cooldown
 
     if (mbCasts.length === 0) {
-      return { potentialCasts: 0, missedCasts: 0, avgDelay: 0 };
+      return { potentialCasts: 0, missedCasts: 0, avgDelay: 0, diStats: null };
     }
 
     // Calculate average cast time from actual MB casts (varies with haste)
@@ -215,12 +217,12 @@ class CastStatsCalculator {
     const actualCasts = mbCasts.length;
     const missedCasts = Math.max(0, potentialCasts - actualCasts);
 
-    // Calculate average delay (only for casts that were delayed)
+    // Calculate average delay (only for non-DI-proc casts that were delayed)
     let totalDelay = 0;
     let delayedCasts = 0;
 
     for (const cast of mbCasts) {
-      if (cast.timeOffCooldown && cast.timeOffCooldown > 0) {
+      if (!cast.diProcActive && cast.timeOffCooldown && cast.timeOffCooldown > 0) {
         totalDelay += cast.timeOffCooldown;
         delayedCasts++;
       }
@@ -228,10 +230,41 @@ class CastStatsCalculator {
 
     const avgDelay = delayedCasts > 0 ? totalDelay / delayedCasts : 0;
 
+    // Divine Insight proc stats (only if DI procs occurred)
+    const diStats = this.calculateDivineInsightStats(mbCasts, diProcPeriods);
+
     return {
       potentialCasts,
       missedCasts,
-      avgDelay
+      avgDelay,
+      diStats
+    };
+  }
+
+  /**
+   * Calculate Divine Insight proc statistics.
+   * @param {Array} mbCasts - all MB casts (some will have diProcActive = true)
+   * @param {Array} diProcPeriods - proc period objects from casts-analyzer
+   * @returns {Object|null} DI stats or null if no procs occurred
+   */
+  calculateDivineInsightStats(mbCasts, diProcPeriods) {
+    if (!diProcPeriods || diProcPeriods.length === 0) return null;
+
+    const procsGained = diProcPeriods.length;
+    const procsUsed = diProcPeriods.filter(p => p.usedByMB).length;
+    const procsWasted = diProcPeriods.filter(p => p.wasted).length;
+
+    // Average reaction time: from proc granted to MB cast (for used procs only)
+    const usedProcMBs = mbCasts.filter(c => c.diProcActive && c.diProcDelay !== undefined);
+    const avgReactionTime = usedProcMBs.length > 0
+      ? usedProcMBs.reduce((sum, c) => sum + c.diProcDelay, 0) / usedProcMBs.length
+      : 0;
+
+    return {
+      procsGained,
+      procsUsed,
+      procsWasted,
+      avgReactionTime
     };
   }
 

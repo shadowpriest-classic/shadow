@@ -1240,6 +1240,18 @@ footer a:hover {
     margin: 2px 0;
 }
 
+.stat-section-divider {
+    grid-column: 1 / -1;
+    color: #9ca3af;
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 6px;
+    border-top: 1px solid rgba(66, 66, 66, 0.5);
+    margin-top: 4px;
+}
+
 /* Talents & Selectors Bar */
 .talents-and-selectors-bar {
     display: flex;

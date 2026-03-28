@@ -59,7 +59,10 @@ const AuraId = {
   INNER_BRILLIANCE: 126577, // Trinket proc
 
   // Vampiric Touch refresh mechanic
-  VT_REFRESH: 34914 // Not a real buff, but tracks VT refresh timing
+  VT_REFRESH: 34914, // Not a real buff, but tracks VT refresh timing
+
+  // Talent Procs (Tier 5)
+  DIVINE_INSIGHT: 124430 // Divine Insight (Shadow) - resets MB cooldown, makes next MB instant
 };
 
 // Default buff values
@@ -240,6 +243,13 @@ const BUFFS = {
   // Raid Cooldowns
   [AuraId.SKULL_BANNER]: buff({
     name: 'Skull Banner',
+    trigger: BuffTrigger.EXTERNAL,
+    summaryIcon: true
+  }),
+
+  // Divine Insight proc (Tier 5 talent)
+  [AuraId.DIVINE_INSIGHT]: buff({
+    name: 'Divine Insight',
     trigger: BuffTrigger.EXTERNAL,
     summaryIcon: true
   }),

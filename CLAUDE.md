@@ -9,7 +9,7 @@ A web-based WarcraftLogs analyzer specifically designed for Shadow Priests in Mi
 - **Frontend**: Vanilla JavaScript, HTML, CSS (no framework)
 - **Data Source**: WarcraftLogs API v2 (GraphQL)
 - **Analysis Engine**: Client-side cast analysis with quality scoring
-- **Version**: v2.46.2
+- **Version**: v2.47.0
 
 ### Core Components
 
@@ -115,8 +115,8 @@ const SPELL_IDS = {
 ### Version Control
 - Branch: `claude/shadow-priest-website-01Fzq4UgdUHDyo4mx2CAbHnE`
 - Update version in 3 places when making changes:
-  1. Footer: `<div class="version-label">v2.46.2</div>`
-  2. App bar: `<span class="app-version">v2.46.2</span>`
+  1. Footer: `<div class="version-label">v2.47.0</div>`
+  2. App bar: `<span class="app-version">v2.47.0</span>`
   3. CSS cache: `<link rel="stylesheet" href="style.css?v=2.45.0">`
 - Update script versions when modifying JS files
 
@@ -157,14 +157,14 @@ const SPELL_IDS = {
 - ✅ v2.27.9: Fixed Dominate Mind icon mapping (WCL returns "Mind Control")
 - ✅ v2.27.10: Fixed tooltip to show "Dominate Mind" instead of "Mind Control"
 
-#### Mind Flay Clipping Analysis (v2.45.0 → v2.46.2)
+#### Mind Flay Clipping Analysis (v2.45.0 → v2.47.0)
 - ✅ v2.45.0: Initial implementation with tick-based clipping analysis
 - ✅ v2.45.1: **Bug fix** - Use actual damage timestamps instead of modulo math
 - ✅ v2.45.2: **UI tweak** - Display tick time in milliseconds for consistency
 - ✅ v2.45.3: **Critical fix** - Use nextCast.castStart instead of cast.castEnd for wasted time calculation
 - ✅ v2.45.4: Add color indicators for Mind Flay clipping quality (200-299ms = warning, 300ms+ = error)
 - ✅ v2.45.5: **Bug fix** - Display actual tick interval instead of time to first tick
-- ✅ v2.46.2: **Bug fix** - Filter out MF → MF attachment intervals and handle casts with no ticks
+- ✅ v2.47.0: **Bug fix** - Filter out MF → MF attachment intervals and handle casts with no ticks
 - ✅ Calculate wasted channel time when clipping MF → Other spell
 - ✅ Display wasted time in individual cast details
 - ✅ Show average wasted time in stats panel when filtering Mind Flay
@@ -173,34 +173,32 @@ const SPELL_IDS = {
 - ✅ **UI Changes**: Removed "Cast Time" for MF, added "Tick Interval" (average time between ticks)
 - ✅ **UI Changes**: Removed "Delay" display for Mind Flay (not useful)
 
+#### Mind Blast Analytics Enhancement (v2.47.0)
+- ✅ Added **Potential Casts** and **Missed Casts** (highlighted red if > 0)
+- ✅ Added **Avg Delay** color-coded (notice/warning/error tiers)
+- ✅ Avg Delay excludes DI-proc MB casts (those aren't "delayed", they're bonus casts)
+
+#### Divine Insight Proc Tracking (v2.47.0)
+**Feature**: Track DI talent proc (buff ID 124430) when filtering by Mind Blast.
+
+**Implementation**:
+- `buff-data.js`: Added DIVINE_INSIGHT (124430) to AuraId and BUFFS — ensures buff events are fetched
+- `casts-analyzer.js`: Added `trackDivineInsightProcs()` — parses applybuff/refreshbuff/removebuff events for 124430, builds `diProcPeriods` array
+- `casts-analyzer.js`: Modified `calculateCooldownMetrics()` — detects active DI procs at MB cast time, marks `cast.diProcActive`, `cast.diProcDelay`; DI-proc MBs don't get `timeOffCooldown` (they used a proc, not a delay)
+- `cast-stats-calculator.js`: Added `calculateDivineInsightStats()` — procs gained/used/wasted, avg reaction time
+- `script.js`: Shows DI section in MB filter stats panel; shows ⚡ proc indicator + reaction time in individual MB cast details
+
+**Stats displayed (MB filter, when DI procs occurred)**:
+- Procs Gained / Procs Used (X/Y, colored by ratio) / Wasted (red if > 0) / Avg Reaction
+- Per-cast: "⚡ proc used (1.2s reaction)" indicator in cast detail
+
+**Key mechanics**:
+- DI proc resets MB CD immediately; next MB is instant-cast
+- Buff can refresh (new proc while active) — each refresh creates a new proc period
+- Wasted = proc expired or refreshed without player casting MB during the window
+- Fight-end expirations don't count as wasted
+
 ### In Progress
-
-#### Mind Blast Analytics Enhancement
-**Goal**: Add spell-specific stats when filtering by Mind Blast
-
-**Implementation Plan**:
-1. Calculate potential MB casts:
-   - Find first MB cast timestamp (accounts for opener: SW:P > VT > DP > MB)
-   - Potential = `1 + floor((fight_end - first_MB_end) / 8000)`
-   - MB cooldown is flat 8 seconds (NOT affected by haste)
-
-2. Add to stats panel when filtering MB (spell ID 8092):
-   - Casts (actual count)
-   - Potential Casts
-   - **Missed Casts** (highlight if > 0)
-   - Crit Rate
-   - **Avg Delay** (average time MB was delayed after CD ready)
-
-3. Implementation location:
-   - Add calculation method to `cast-stats-calculator.js`
-   - Update `renderStatsOverview()` in `script.js` for spell ID 8092
-
-**Key Mechanics**:
-- MB cooldown: 8000ms flat (no haste scaling)
-- MB cast time: 1500ms base (affected by haste)
-- Opener sequence: Potion > Halo > Mind Spike (pre-pull) → Shadowfiend+CDs → SW:P > VT > DP > MB
-- Start fight with 3 orbs (passive out-of-combat generation)
-- First MB typically around ~5-6 seconds into fight
 
 ### Upcoming Tasks
 
