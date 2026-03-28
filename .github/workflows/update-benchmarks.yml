@@ -39,11 +39,11 @@ jobs:
 
       - name: Commit and push changes
         run: |
+          git pull --rebase origin main
           git add analyzer/benchmarks/*.json
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             git commit -m "chore: Update benchmark data (automated)"
-            git pull --rebase origin main
             git push
           fi
