@@ -1190,7 +1190,7 @@ class CastsAnalyzer {
       const activeDIProc = this.diProcPeriods.length > 0
         ? this.diProcPeriods.find(p =>
             cast.castStart >= p.startTime &&
-            cast.castStart < (p.endTime || Infinity) &&
+            cast.castStart <= (p.endTime || Infinity) &&
             !p.usedByMB
           )
         : null;
