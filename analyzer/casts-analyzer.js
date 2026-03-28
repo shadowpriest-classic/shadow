@@ -1166,12 +1166,7 @@ class CastsAnalyzer {
       currentProc.endReason = 'fightend';
     }
 
-    // Procs that expired without being used are wasted (fight-end expirations don't count)
-    for (const proc of this.diProcPeriods) {
-      if (!proc.usedByMB && proc.endReason === 'expired') {
-        proc.wasted = true;
-      }
-    }
+    // wasted flag is calculated after calculateCooldownMetrics() sets usedByMB
   }
 
   /**
@@ -1226,12 +1221,12 @@ class CastsAnalyzer {
       }
     }
 
-    // After processing all casts, re-evaluate wasted procs
-    // (any proc not marked usedByMB and ended via 'expired' or 'refreshed')
+    // Final wasted pass — now that usedByMB is fully set, compute wasted definitively.
+    // A proc is wasted if it wasn't used AND it ended before the fight was over.
+    // Refreshed procs are also wasted (previous window was overwritten without an MB).
     for (const proc of this.diProcPeriods) {
-      if (!proc.usedByMB && (proc.endReason === 'expired' || proc.endReason === 'refreshed')) {
-        proc.wasted = true;
-      }
+      proc.wasted = !proc.usedByMB &&
+        (proc.endReason === 'expired' || proc.endReason === 'refreshed');
     }
   }
 
